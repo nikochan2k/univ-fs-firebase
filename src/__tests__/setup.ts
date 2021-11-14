@@ -1,21 +1,38 @@
 import { initializeApp } from "@firebase/app";
-import { deleteObject, getStorage, ref } from "@firebase/storage";
-import { NotFoundError } from "univ-fs";
+import {
+  deleteObject,
+  FirebaseStorage,
+  getStorage,
+  listAll,
+  ref,
+  StorageReference,
+} from "@firebase/storage";
 import { FirebaseFileSystem } from "../FirebaseFileSystem";
 import firebaseConfig from "./secret.json";
 
 export const fs = new FirebaseFileSystem("nikochan2k-test", firebaseConfig);
 
+const deleteAll = async (dir: StorageReference) => {
+  const list = await listAll(dir);
+  for (const prefix of list.prefixes || []) {
+    await deleteAll(prefix);
+  }
+  for (const item of list.items || []) {
+    console.log(item.fullPath);
+    await deleteObject(item);
+  }
+};
+
 export const setup = async () => {
+  let storage: FirebaseStorage | undefined;
   try {
     const app = initializeApp(firebaseConfig);
-    const storage = getStorage(app);
-    const root = ref(storage, "nikochan2k-test");
-    await deleteObject(root);
+    storage = getStorage(app);
+    fs._setupStorage(storage);
+    const root = ref(storage);
+    await deleteAll(root);
   } catch (e) {
-    if (e.name !== NotFoundError.name) {
-      throw e;
-    }
+    console.warn(e);
   }
 };
 
