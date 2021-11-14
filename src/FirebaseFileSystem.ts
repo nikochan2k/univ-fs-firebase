@@ -30,7 +30,7 @@ import {
 import { FirebaseDirectory } from "./FirebaseDirectory";
 import { FirebaseFile } from "./FirebaseFile";
 
-export interface FirebaseFileSystemOptions extends FirebaseStorage {
+export interface FirebaseFileSystemOptions extends FileSystemOptions {
   bucketUrl?: string;
 }
 
@@ -61,7 +61,10 @@ export class FirebaseFileSystem extends AbstractFileSystem {
   public _error(path: string, e: unknown, write: boolean) {
     let name: string;
     const code: string = (e as any).code; // eslint-disable-line
-    if (code === "storage/object-not-found") {
+    if (
+      !write &&
+      (code === "storage/object-not-found" || code === "storage/unauthorized")
+    ) {
       name = NotFoundError.name;
     } else if (write) {
       name = NoModificationAllowedError.name;
@@ -117,25 +120,9 @@ export class FirebaseFileSystem extends AbstractFileSystem {
       return this.storage;
     }
 
-    this.storage = getStorage(this.app, this.firebaseOptions?.bucketUrl);
-    const key = this._getKey("/", true);
-    const root = ref(this.storage, key);
-    try {
-      await getMetadata(root);
-      return this.storage;
-    } catch (e) {
-      const err = this._error("/", e, false);
-      if (err.name !== NotFoundError.name) {
-        throw e;
-      }
-    }
-    try {
-      await uploadString(root, "");
-    } catch (e) {
-      throw this._error("/", e, true);
-    }
-
-    return this.storage;
+    const storage = getStorage(this.app, this.firebaseOptions?.bucketUrl);
+    await this._setupStorage(storage);
+    return storage;
   }
 
   public async _head(path: string, options?: HeadOptions): Promise<Stats> {
@@ -197,6 +184,26 @@ export class FirebaseFileSystem extends AbstractFileSystem {
       await updateMetadata(entry, obj);
     } catch (e) {
       throw this._error(path, e, true);
+    }
+  }
+
+  public async _setupStorage(storage: FirebaseStorage) {
+    this.storage = storage;
+
+    const key = this._getKey("/", true);
+    const root = ref(storage, key);
+    try {
+      await getMetadata(root);
+    } catch (e) {
+      const err = this._error("/", e, false);
+      if (err.name !== NotFoundError.name) {
+        throw e;
+      }
+    }
+    try {
+      await uploadString(root, "");
+    } catch (e) {
+      throw this._error("/", e, true);
     }
   }
 
