@@ -14,15 +14,15 @@ import {
 import { FirebaseFileSystem } from "./FirebaseFileSystem";
 
 export class FirebaseFile extends AbstractFile {
-  constructor(private gfs: FirebaseFileSystem, path: string) {
-    super(gfs, path);
+  constructor(private ffs: FirebaseFileSystem, path: string) {
+    super(ffs, path);
   }
 
   // eslint-disable-next-line
   protected async _load(_stats: Stats, _options: OpenOptions): Promise<Data> {
-    const gfs = this.gfs;
+    const ffs = this.ffs;
     const path = this.path;
-    const url = await gfs._toURL(path, false);
+    const url = await ffs._toURL(path, false);
     if (isNode) {
       const proto = url.startsWith("https://") ? https : http;
       return new Promise((resolve, reject) => {
@@ -31,7 +31,7 @@ export class FirebaseFile extends AbstractFile {
             reject(
               createError({
                 name: NotFoundError.name,
-                repository: this.gfs.repository,
+                repository: this.ffs.repository,
                 path,
               })
             );
@@ -41,7 +41,7 @@ export class FirebaseFile extends AbstractFile {
             reject(
               createError({
                 name: NotReadableError.name,
-                repository: this.gfs.repository,
+                repository: this.ffs.repository,
                 path,
                 e: {
                   message: `${response.statusMessage} (${response.statusCode})`, // eslint-disable-line
@@ -61,7 +61,7 @@ export class FirebaseFile extends AbstractFile {
       } catch (e: unknown) {
         throw createError({
           name: NotReadableError.name,
-          repository: this.gfs.repository,
+          repository: this.ffs.repository,
           path,
           e: e as any, // eslint-disable-line
         });
@@ -69,14 +69,14 @@ export class FirebaseFile extends AbstractFile {
       if (response.status === 404) {
         throw createError({
           name: NotFoundError.name,
-          repository: this.gfs.repository,
+          repository: this.ffs.repository,
           path,
         });
       }
       if (response.status !== 200 || !response.body) {
         throw createError({
           name: NotReadableError.name,
-          repository: this.gfs.repository,
+          repository: this.ffs.repository,
           path,
           e: {
             message: `${response.statusText} (${response.status})`, // eslint-disable-line
@@ -88,13 +88,13 @@ export class FirebaseFile extends AbstractFile {
   }
 
   protected async _rm(): Promise<void> {
-    const gfs = this.gfs;
+    const ffs = this.ffs;
     const path = this.path;
-    const file = await this.gfs._getEntry(path, false);
+    const file = await this.ffs._getEntry(path, false);
     try {
       await deleteObject(file);
     } catch (e) {
-      throw gfs._error(path, e, true);
+      throw ffs._error(path, e, true);
     }
   }
 
@@ -103,7 +103,7 @@ export class FirebaseFile extends AbstractFile {
     stats: Stats | undefined,
     options: WriteOptions
   ): Promise<void> {
-    const gfs = this.gfs;
+    const ffs = this.ffs;
     const path = this.path;
     const converter = new Converter(options);
 
@@ -112,10 +112,10 @@ export class FirebaseFile extends AbstractFile {
       head = await this._load(stats, options);
     }
 
-    const file = await this.gfs._getEntry(path, false);
+    const file = await this.ffs._getEntry(path, false);
     if (stats) {
-      const obj = await this.gfs._getMetadata(path, false);
-      obj.customMetadata = gfs._createMetadata(stats); // eslint-disable-line
+      const obj = await this.ffs._getMetadata(path, false);
+      obj.customMetadata = ffs._createMetadata(stats); // eslint-disable-line
       await updateMetadata(file, obj);
     }
 
@@ -138,7 +138,7 @@ export class FirebaseFile extends AbstractFile {
         await uploadBytes(file, blob);
       }
     } catch (e) {
-      throw gfs._error(path, e, true);
+      throw ffs._error(path, e, true);
     }
   }
 }

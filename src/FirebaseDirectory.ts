@@ -3,17 +3,17 @@ import { AbstractDirectory, joinPaths } from "univ-fs";
 import { FirebaseFileSystem } from "./FirebaseFileSystem";
 
 export class FirebaseDirectory extends AbstractDirectory {
-  constructor(private gfs: FirebaseFileSystem, path: string) {
-    super(gfs, path);
+  constructor(private ffs: FirebaseFileSystem, path: string) {
+    super(ffs, path);
   }
 
   public async _list(): Promise<string[]> {
-    const gfs = this.gfs;
+    const ffs = this.ffs;
     const path = this.path;
     const paths: string[] = [];
     try {
-      const dir = await gfs._getEntry(path, true);
-      const prefix = gfs._getKey(path, true);
+      const dir = await ffs._getEntry(path, true);
+      const prefix = ffs._getKey(path, true);
       const result = await listAll(dir);
       for (const dir of result.prefixes ?? []) {
         if (prefix === dir.fullPath) {
@@ -35,29 +35,29 @@ export class FirebaseDirectory extends AbstractDirectory {
       }
       return paths;
     } catch (e) {
-      throw gfs._error(path, e, false);
+      throw ffs._error(path, e, false);
     }
   }
 
   public async _mkcol(): Promise<void> {
-    const gfs = this.gfs;
+    const ffs = this.ffs;
     const path = this.path;
     try {
-      const dir = await gfs._getEntry(path, true);
+      const dir = await ffs._getEntry(path, true);
       await uploadString(dir, "");
     } catch (e) {
-      throw gfs._error(path, e, true);
+      throw ffs._error(path, e, true);
     }
   }
 
   public async _rmdir(): Promise<void> {
-    const gfs = this.gfs;
+    const ffs = this.ffs;
     const path = this.path;
     try {
-      const dir = await gfs._getEntry(path, true);
+      const dir = await ffs._getEntry(path, true);
       await deleteObject(dir);
     } catch (e) {
-      throw gfs._error(path, e, true);
+      throw ffs._error(path, e, true);
     }
   }
 }
