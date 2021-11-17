@@ -1,4 +1,4 @@
-import { deleteObject, listAll, uploadString } from "@firebase/storage";
+import { listAll } from "@firebase/storage";
 import { AbstractDirectory, joinPaths } from "univ-fs";
 import { FirebaseFileSystem } from "./FirebaseFileSystem";
 
@@ -40,24 +40,10 @@ export class FirebaseDirectory extends AbstractDirectory {
   }
 
   public async _mkcol(): Promise<void> {
-    const ffs = this.ffs;
-    const path = this.path;
-    try {
-      const dir = await ffs._getEntry(path, true);
-      await uploadString(dir, "");
-    } catch (e) {
-      throw ffs._error(path, e, true);
-    }
+    return Promise.resolve();
   }
 
   public async _rmdir(): Promise<void> {
-    const ffs = this.ffs;
-    const path = this.path;
-    try {
-      const dir = await ffs._getEntry(path, true);
-      await deleteObject(dir);
-    } catch (e) {
-      throw ffs._error(path, e, true);
-    }
+    return Promise.resolve();
   }
 }
