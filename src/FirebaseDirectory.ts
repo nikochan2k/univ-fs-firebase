@@ -15,15 +15,6 @@ export class FirebaseDirectory extends AbstractDirectory {
       const dir = await ffs._getEntry(path, true);
       const prefix = ffs._getKey(path, true);
       const result = await listAll(dir);
-      for (const dir of result.prefixes ?? []) {
-        if (prefix === dir.fullPath) {
-          continue;
-        }
-        const parts = dir.fullPath.split("/");
-        const name = parts[parts.length - 2] as string;
-        const joined = joinPaths(path, name);
-        paths.push(joined);
-      }
       for (const file of result.items ?? []) {
         if (prefix === file.fullPath) {
           continue;

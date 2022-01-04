@@ -18,7 +18,6 @@ const deleteAll = async (dir: StorageReference) => {
     await deleteAll(prefix);
   }
   for (const item of list.items || []) {
-    console.log(item.fullPath);
     await deleteObject(item);
   }
 };
