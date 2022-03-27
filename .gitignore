@@ -106,4 +106,5 @@ dist
 lib/
 secret.json
 tsconfig.tsbuildinfo
+.chrome-karma/
 .DS_Store
