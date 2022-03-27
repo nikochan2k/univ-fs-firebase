@@ -1,6 +1,5 @@
 import { deleteObject, updateMetadata, uploadBytes } from "@firebase/storage";
-import * as http from "http";
-import * as https from "https";
+import fetch from "isomorphic-fetch";
 import { Data } from "univ-conv";
 import {
   AbstractFile,
@@ -28,68 +27,35 @@ export class FirebaseFile extends AbstractFile {
     const ffs = this.ffs;
     const path = this.path;
     const url = await ffs._toURL(path, false);
-    if (isNode) {
-      const proto = url.startsWith("https://") ? https : http;
-      return new Promise((resolve, reject) => {
-        proto.get(url, (response) => {
-          if (response.statusCode === 404) {
-            reject(
-              createError({
-                name: NotFoundError.name,
-                repository: this.ffs.repository,
-                path,
-              })
-            );
-            return;
-          }
-          if (response.statusCode !== 200) {
-            reject(
-              createError({
-                name: NotReadableError.name,
-                repository: this.ffs.repository,
-                path,
-                e: {
-                  message: `${response.statusMessage} (${response.statusCode})`, // eslint-disable-line
-                },
-              })
-            );
-            return;
-          }
-
-          resolve(response);
-        });
+    let response: Response;
+    try {
+      response = await fetch(url);
+    } catch (e: unknown) {
+      throw createError({
+        name: NotReadableError.name,
+        repository: this.ffs.repository,
+        path,
+        e: e as any, // eslint-disable-line
       });
-    } else {
-      let response: Response;
-      try {
-        response = await fetch(url);
-      } catch (e: unknown) {
-        throw createError({
-          name: NotReadableError.name,
-          repository: this.ffs.repository,
-          path,
-          e: e as any, // eslint-disable-line
-        });
-      }
-      if (response.status === 404) {
-        throw createError({
-          name: NotFoundError.name,
-          repository: this.ffs.repository,
-          path,
-        });
-      }
-      if (response.status !== 200 || !response.body) {
-        throw createError({
-          name: NotReadableError.name,
-          repository: this.ffs.repository,
-          path,
-          e: {
-            message: `${response.statusText} (${response.status})`, // eslint-disable-line
-          },
-        });
-      }
-      return response.body;
     }
+    if (response.status === 404) {
+      throw createError({
+        name: NotFoundError.name,
+        repository: this.ffs.repository,
+        path,
+      });
+    }
+    if (response.status !== 200 || !response.body) {
+      throw createError({
+        name: NotReadableError.name,
+        repository: this.ffs.repository,
+        path,
+        e: {
+          message: `${response.statusText} (${response.status})`, // eslint-disable-line
+        },
+      });
+    }
+    return response.body;
   }
 
   protected async _rm(): Promise<void> {
