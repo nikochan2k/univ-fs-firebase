@@ -1,8 +1,5 @@
-import { initializeApp } from "@firebase/app";
 import {
   deleteObject,
-  FirebaseStorage,
-  getStorage,
   listAll,
   ref,
   StorageReference,
@@ -23,16 +20,11 @@ const deleteAll = async (dir: StorageReference) => {
 };
 
 export const setup = async () => {
-  let storage: FirebaseStorage | undefined;
   try {
-    const app = initializeApp(firebaseConfig);
-    storage = getStorage(app);
-    fs._setupStorage(storage);
+    const storage = await fs._getStorage();
     const root = ref(storage);
     await deleteAll(root);
   } catch (e) {
     console.warn(e);
   }
 };
-
-export const teardown = async () => {};

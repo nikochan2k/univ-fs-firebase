@@ -119,9 +119,9 @@ export class FirebaseFileSystem extends AbstractFileSystem {
       return this.storage;
     }
 
-    const storage = getStorage(this.app, this.firebaseOptions?.bucketUrl);
-    await this._setupStorage(storage);
-    return storage;
+    this.storage = getStorage(this.app, this.firebaseOptions?.bucketUrl);
+    await this._setupStorage(this.storage);
+    return this.storage;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
