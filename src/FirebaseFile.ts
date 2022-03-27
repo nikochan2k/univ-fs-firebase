@@ -1,17 +1,22 @@
 import { deleteObject, updateMetadata, uploadBytes } from "@firebase/storage";
 import * as http from "http";
 import * as https from "https";
-import { Converter, Data, isNode } from "univ-conv";
+import { Data } from "univ-conv";
 import {
   AbstractFile,
   createError,
   NotFoundError,
   NotReadableError,
-  OpenOptions,
+  ReadOptions,
   Stats,
   WriteOptions,
 } from "univ-fs";
 import { FirebaseFileSystem } from "./FirebaseFileSystem";
+
+const isNode =
+  typeof process !== "undefined" &&
+  process.versions != null &&
+  process.versions.node != null;
 
 export class FirebaseFile extends AbstractFile {
   constructor(private ffs: FirebaseFileSystem, path: string) {
@@ -19,7 +24,7 @@ export class FirebaseFile extends AbstractFile {
   }
 
   // eslint-disable-next-line
-  protected async _load(_stats: Stats, _options: OpenOptions): Promise<Data> {
+  protected async _load(_stats: Stats, _options: ReadOptions): Promise<Data> {
     const ffs = this.ffs;
     const path = this.path;
     const url = await ffs._toURL(path, false);
@@ -105,7 +110,7 @@ export class FirebaseFile extends AbstractFile {
   ): Promise<void> {
     const ffs = this.ffs;
     const path = this.path;
-    const converter = new Converter(options);
+    const converter = this._getConverter();
 
     let head: Data | undefined;
     if (options.append && stats) {
@@ -121,19 +126,19 @@ export class FirebaseFile extends AbstractFile {
 
     try {
       if (isNode) {
-        let u8: Uint8Array;
+        let buffer: Buffer;
         if (head) {
-          u8 = await converter.merge([head, data], "Uint8Array");
+          buffer = await converter.merge([head, data], "buffer", options);
         } else {
-          u8 = await converter.toUint8Array(data);
+          buffer = await converter.toBuffer(data, options);
         }
-        await uploadBytes(file, u8);
+        await uploadBytes(file, buffer);
       } else {
         let blob: Blob;
         if (head) {
-          blob = await converter.merge([head, data], "Blob");
+          blob = await converter.merge([head, data], "blob", options);
         } else {
-          blob = await converter.toBlob(data);
+          blob = await converter.toBlob(data, options);
         }
         await uploadBytes(file, blob);
       }

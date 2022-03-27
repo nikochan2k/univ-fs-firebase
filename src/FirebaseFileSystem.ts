@@ -5,7 +5,6 @@ import {
   getDownloadURL,
   getMetadata,
   getStorage,
-  list,
   ref,
   updateMetadata,
   uploadString,
@@ -125,51 +124,14 @@ export class FirebaseFileSystem extends AbstractFileSystem {
     return storage;
   }
 
-  public async _head(path: string, options?: HeadOptions): Promise<Stats> {
-    options = { ...options };
-    const isFile = !options.type || options.type === "file";
-    const isDirectory = !options.type || options.type === "directory";
-    const fileHead = isFile ? this._getMetadata(path, false) : Promise.reject();
-    const dirHead = isDirectory
-      ? this._getMetadata(path, true)
-      : Promise.reject();
-    const entry = await this._getEntry(path, isDirectory);
-    const dirList = isDirectory
-      ? list(entry, { maxResults: 1 })
-      : Promise.reject();
-    const [fileHeadRes, dirHeadRes, dirListRes] = await Promise.allSettled([
-      fileHead,
-      dirHead,
-      dirList,
-    ]);
-    if (fileHeadRes.status === "fulfilled") {
-      return this._handleHead(fileHeadRes.value, false);
-    } else if (dirHeadRes.status === "fulfilled") {
-      const stats = this._handleHead(dirHeadRes.value, true);
-      delete stats.size;
-      return stats;
-    } else if (dirListRes.status === "fulfilled") {
-      const list = dirListRes.value;
-      if (
-        (list.items && 0 < list.items.length) ||
-        (list.prefixes && 0 < list.prefixes.length)
-      ) {
-        return {};
-      }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public async _head(path: string, _?: HeadOptions): Promise<Stats> {
+    try {
+      const res = await this._getMetadata(path, false);
+      return this._handleHead(res);
+    } catch (e) {
+      throw this._error(path, e, false);
     }
-    let dirListReason: unknown | undefined;
-    if (dirListRes.status === "rejected") {
-      dirListReason = dirListRes.reason;
-    }
-    if (isFile) {
-      throw this._error(path, fileHeadRes.reason, false);
-    }
-    if (isDirectory) {
-      if (dirHeadRes.reason) {
-        throw this._error(path, dirHeadRes.reason, false);
-      }
-    }
-    throw this._error(path, dirListReason, false);
   }
 
   public async _patch(
@@ -241,18 +203,18 @@ export class FirebaseFileSystem extends AbstractFileSystem {
     }
   }
 
+  public supportDirectory(): boolean {
+    return false;
+  }
+
   /* eslint-disable */
-  private _handleHead(obj: FullMetadata, isDirectory: boolean) {
+  private _handleHead(obj: FullMetadata) {
     const metadata = obj.customMetadata || {};
     const stats: Stats = {};
     for (const [key, value] of Object.entries(metadata)) {
       stats[key] = value;
     }
-    if (isDirectory) {
-      delete stats.size;
-    } else {
-      stats.size = obj.size;
-    }
+    stats.size = obj.size;
     const created = new Date(obj.timeCreated).getTime();
     if (created) {
       stats.created = created;
