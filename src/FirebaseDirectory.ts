@@ -1,5 +1,5 @@
 import { listAll } from "@firebase/storage";
-import { AbstractDirectory, joinPaths } from "univ-fs";
+import { AbstractDirectory, Item, joinPaths } from "univ-fs";
 import { FirebaseFileSystem } from "./FirebaseFileSystem";
 
 export class FirebaseDirectory extends AbstractDirectory {
@@ -7,10 +7,10 @@ export class FirebaseDirectory extends AbstractDirectory {
     super(ffs, path);
   }
 
-  public async _list(): Promise<string[]> {
+  public async _list(): Promise<Item[]> {
     const ffs = this.ffs;
     const path = this.path;
-    const paths: string[] = [];
+    const items: Item[] = [];
     try {
       const dir = await ffs._getEntry(path, true);
       const prefix = ffs._getKey(path, true);
@@ -22,9 +22,9 @@ export class FirebaseDirectory extends AbstractDirectory {
         const parts = file.fullPath.split("/");
         const name = parts[parts.length - 1] as string;
         const joined = joinPaths(path, name);
-        paths.push(joined);
+        items.push({ path: joined }); // eslint-disable-line
       }
-      return paths;
+      return items; // eslint-disable-line @typescript-eslint/no-unsafe-return
     } catch (e) {
       throw ffs._error(path, e, false);
     }

@@ -76,7 +76,7 @@
     "firebase": "^9.6.10",
     "isomorphic-fetch": "^3.0.0",
     "tslib": "^2.3.1",
-    "univ-fs": "^0.6.13"
+    "univ-fs": "^0.6.26"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"
