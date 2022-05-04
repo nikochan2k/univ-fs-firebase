@@ -104,7 +104,7 @@ dist
 .tern-port
 
 lib/
-**/secret*.json
+**/*.json
 tsconfig.tsbuildinfo
 .chrome-karma/
 .DS_Store
