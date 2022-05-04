@@ -21,7 +21,6 @@ import {
   NotFoundError,
   NotReadableError,
   PatchOptions,
-  Props,
   Stats,
   TypeMismatchError,
   URLOptions,
@@ -46,12 +45,10 @@ export class FirebaseFileSystem extends AbstractFileSystem {
     this.app = initializeApp(firebaseConfig);
   }
 
-  public _createMetadata(props: Props) {
+  public _createMetadata(props: Stats) {
     const metadata: { [key: string]: string } = {};
     for (const [key, value] of Object.entries(props)) {
-      if (0 <= ["size", "etag", "created", "modified"].indexOf(key)) {
-        continue;
-      }
+      if (!value) continue;
       metadata[key] = "" + value; // eslint-disable-line
     }
     return metadata;
@@ -64,11 +61,11 @@ export class FirebaseFileSystem extends AbstractFileSystem {
       !write &&
       (code === "storage/object-not-found" || code === "storage/unauthorized")
     ) {
-      name = NotFoundError.name;
+      name = NotFoundError.name!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
     } else if (write) {
-      name = NoModificationAllowedError.name;
+      name = NoModificationAllowedError.name!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
     } else {
-      name = NotReadableError.name;
+      name = NotReadableError.name!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
     }
     return createError({
       name,
@@ -136,7 +133,8 @@ export class FirebaseFileSystem extends AbstractFileSystem {
 
   public async _patch(
     path: string,
-    props: Props,
+    _stats: Stats,
+    props: Stats,
     _options: PatchOptions // eslint-disable-line
   ): Promise<void> {
     try {
@@ -201,6 +199,18 @@ export class FirebaseFileSystem extends AbstractFileSystem {
     } catch (e) {
       throw this._error(path, e, false);
     }
+  }
+
+  public canPatchAccessed(): boolean {
+    return false;
+  }
+
+  public canPatchCreated(): boolean {
+    return false;
+  }
+
+  public canPatchModified(): boolean {
+    return false;
   }
 
   public supportDirectory(): boolean {

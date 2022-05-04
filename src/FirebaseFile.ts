@@ -22,6 +22,18 @@ export class FirebaseFile extends AbstractFile {
     super(ffs, path);
   }
 
+  public supportAppend(): boolean {
+    return false;
+  }
+
+  public supportRangeRead(): boolean {
+    return false;
+  }
+
+  public supportRangeWrite(): boolean {
+    return false;
+  }
+
   // eslint-disable-next-line
   protected async _load(_stats: Stats, _options: ReadOptions): Promise<Data> {
     const ffs = this.ffs;
