@@ -1,9 +1,9 @@
 module.exports = {
   mode: "development",
   entry: {
-    "conv.spec": "./lib/__tests__/conv.spec.js",
-    "common.spec": "./lib/__tests__/common.spec.js",
-    "largefile.spec": "./lib/__tests__/largefile-web.js",
+    "basic.spec": "./lib/__tests__/basic.spec.js",
+    "head.spec": "./lib/__tests__/head.spec.js",
+    "list.spec": "./lib/__tests__/list.spec.js",
   },
   output: {
     filename: "[name].js",
