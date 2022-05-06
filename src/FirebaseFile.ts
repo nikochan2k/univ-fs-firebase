@@ -1,6 +1,6 @@
-import { deleteObject, updateMetadata, uploadBytes } from "@firebase/storage";
+import { deleteObject, uploadBytes } from "@firebase/storage";
 import fetch from "isomorphic-fetch";
-import { Data } from "univ-conv";
+import { Data, isNode } from "univ-conv";
 import {
   AbstractFile,
   createError,
@@ -12,33 +12,16 @@ import {
 } from "univ-fs";
 import { FirebaseFileSystem } from "./FirebaseFileSystem";
 
-const isNode =
-  typeof process !== "undefined" &&
-  process.versions != null &&
-  process.versions.node != null;
-
 export class FirebaseFile extends AbstractFile {
   constructor(private ffs: FirebaseFileSystem, path: string) {
     super(ffs, path);
   }
 
-  public supportAppend(): boolean {
-    return false;
-  }
-
-  public supportRangeRead(): boolean {
-    return false;
-  }
-
-  public supportRangeWrite(): boolean {
-    return false;
-  }
-
   // eslint-disable-next-line
-  protected async _load(_stats: Stats, _options: ReadOptions): Promise<Data> {
+  public async _doRead(_stats: Stats, _options: ReadOptions): Promise<Data> {
     const ffs = this.ffs;
     const path = this.path;
-    const url = await ffs._toURL(path, false);
+    const url = await ffs._doToURL(path, false);
     let response: Response;
     try {
       response = await fetch(url);
@@ -70,7 +53,7 @@ export class FirebaseFile extends AbstractFile {
     return response.body;
   }
 
-  protected async _rm(): Promise<void> {
+  public async _doRm(): Promise<void> {
     const ffs = this.ffs;
     const path = this.path;
     const file = await this.ffs._getEntry(path, false);
@@ -81,47 +64,38 @@ export class FirebaseFile extends AbstractFile {
     }
   }
 
-  protected async _save(
+  public async _doWrite(
     data: Data,
-    stats: Stats | undefined,
+    _stats: Stats | undefined,
     options: WriteOptions
   ): Promise<void> {
     const ffs = this.ffs;
     const path = this.path;
     const converter = this._getConverter();
 
-    let head: Data | undefined;
-    if (options.append && stats) {
-      head = await this._load(stats, options);
-    }
-
     const file = await this.ffs._getEntry(path, false);
-    if (stats) {
-      const obj = await this.ffs._getMetadata(path, false);
-      obj.customMetadata = ffs._createMetadata(stats); // eslint-disable-line
-      await updateMetadata(file, obj);
-    }
-
     try {
       if (isNode) {
-        let buffer: Buffer;
-        if (head) {
-          buffer = await converter.merge([head, data], "buffer", options);
-        } else {
-          buffer = await converter.toBuffer(data, options);
-        }
+        const buffer = await converter.toBuffer(data, options);
         await uploadBytes(file, buffer);
       } else {
-        let blob: Blob;
-        if (head) {
-          blob = await converter.merge([head, data], "blob", options);
-        } else {
-          blob = await converter.toBlob(data, options);
-        }
+        const blob = await converter.toBlob(data, options);
         await uploadBytes(file, blob);
       }
     } catch (e) {
       throw ffs._error(path, e, true);
     }
+  }
+
+  public supportAppend(): boolean {
+    return false;
+  }
+
+  public supportRangeRead(): boolean {
+    return false;
+  }
+
+  public supportRangeWrite(): boolean {
+    return false;
   }
 }

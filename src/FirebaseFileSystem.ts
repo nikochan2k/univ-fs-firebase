@@ -54,6 +54,74 @@ export class FirebaseFileSystem extends AbstractFileSystem {
     return metadata;
   }
 
+  public async _doGetDirectory(path: string): Promise<AbstractDirectory> {
+    return Promise.resolve(new FirebaseDirectory(this, path));
+  }
+
+  public async _doGetFile(path: string): Promise<AbstractFile> {
+    return Promise.resolve(new FirebaseFile(this, path));
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public async _doHead(path: string, _options?: HeadOptions): Promise<Stats> {
+    try {
+      const res = await this._getMetadata(path, false);
+      return this._handleHead(res);
+    } catch (e) {
+      throw this._error(path, e, false);
+    }
+  }
+
+  public async _doPatch(
+    path: string,
+    _stats: Stats,
+    props: Stats,
+    _options: PatchOptions // eslint-disable-line
+  ): Promise<void> {
+    try {
+      const obj = await this._getMetadata(path, props["size"] === null);
+      obj.customMetadata = this._createMetadata(props);
+      const entry = await this._getEntry(path, props["size"] === null);
+      await updateMetadata(entry, obj);
+    } catch (e) {
+      throw this._error(path, e, true);
+    }
+  }
+
+  public async _doToURL(
+    path: string,
+    isDirectory: boolean,
+    options?: URLOptions
+  ): Promise<string> {
+    if (isDirectory) {
+      throw createError({
+        name: TypeMismatchError.name,
+        repository: this.repository,
+        path,
+        e: { message: `"${path}" is not a directory` },
+      });
+    }
+
+    options = { urlType: "GET", ...options };
+    switch (options.urlType) {
+      case "GET":
+        break;
+      default:
+        throw this._error(
+          path,
+          { message: `"${options.urlType}" is not supported` }, // eslint-disable-line
+          false
+        );
+    }
+
+    const file = await this._getEntry(path, isDirectory);
+    try {
+      return getDownloadURL(file);
+    } catch (e) {
+      throw this._error(path, e, false);
+    }
+  }
+
   public _error(path: string, e: unknown, write: boolean) {
     let name: string;
     const code: string = (e as any).code; // eslint-disable-line
@@ -61,11 +129,11 @@ export class FirebaseFileSystem extends AbstractFileSystem {
       !write &&
       (code === "storage/object-not-found" || code === "storage/unauthorized")
     ) {
-      name = NotFoundError.name!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
+      name = NotFoundError.name;
     } else if (write) {
-      name = NoModificationAllowedError.name!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
+      name = NoModificationAllowedError.name;
     } else {
-      name = NotReadableError.name!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
+      name = NotReadableError.name;
     }
     return createError({
       name,
@@ -75,18 +143,10 @@ export class FirebaseFileSystem extends AbstractFileSystem {
     });
   }
 
-  public async _getDirectory(path: string): Promise<AbstractDirectory> {
-    return Promise.resolve(new FirebaseDirectory(this, path));
-  }
-
   public async _getEntry(path: string, isDirectory: boolean) {
     const storage = await this._getStorage();
     const key = this._getKey(path, isDirectory);
     return ref(storage, key);
-  }
-
-  public async _getFile(path: string): Promise<AbstractFile> {
-    return Promise.resolve(new FirebaseFile(this, path));
   }
 
   public _getKey(path: string, isDirectory: boolean) {
@@ -121,32 +181,6 @@ export class FirebaseFileSystem extends AbstractFileSystem {
     return this.storage;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public async _head(path: string, _?: HeadOptions): Promise<Stats> {
-    try {
-      const res = await this._getMetadata(path, false);
-      return this._handleHead(res);
-    } catch (e) {
-      throw this._error(path, e, false);
-    }
-  }
-
-  public async _patch(
-    path: string,
-    _stats: Stats,
-    props: Stats,
-    _options: PatchOptions // eslint-disable-line
-  ): Promise<void> {
-    try {
-      const obj = await this._getMetadata(path, props["size"] === null);
-      obj.customMetadata = this._createMetadata(props);
-      const entry = await this._getEntry(path, props["size"] === null);
-      await updateMetadata(entry, obj);
-    } catch (e) {
-      throw this._error(path, e, true);
-    }
-  }
-
   public async _setupStorage(storage: FirebaseStorage) {
     this.storage = storage;
 
@@ -164,40 +198,6 @@ export class FirebaseFileSystem extends AbstractFileSystem {
       await uploadString(root, "");
     } catch (e) {
       throw this._error("/", e, true);
-    }
-  }
-
-  public async _toURL(
-    path: string,
-    isDirectory: boolean,
-    options?: URLOptions
-  ): Promise<string> {
-    if (isDirectory) {
-      throw createError({
-        name: TypeMismatchError.name,
-        repository: this.repository,
-        path,
-        e: { message: `"${path}" is not a directory` },
-      });
-    }
-
-    options = { urlType: "GET", ...options };
-    switch (options.urlType) {
-      case "GET":
-        break;
-      default:
-        throw this._error(
-          path,
-          { message: `"${options.urlType}" is not supported` }, // eslint-disable-line
-          false
-        );
-    }
-
-    const file = await this._getEntry(path, isDirectory);
-    try {
-      return getDownloadURL(file);
-    } catch (e) {
-      throw this._error(path, e, false);
     }
   }
 

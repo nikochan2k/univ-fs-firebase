@@ -1,6 +1,6 @@
 {
   "name": "univ-fs-firebase",
-  "version": "0.6.2",
+  "version": "0.8.0",
   "description": "The universal Filesystem API for Firebase Storage",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -53,7 +53,7 @@
     "eslint": "^8.14.0",
     "eslint-config-prettier": "^8.5.0",
     "jasmine": "^4.1.0",
-    "jest": "^28.0.3",
+    "jest": "^28.1.0",
     "karma": "^6.3.19",
     "karma-chrome-launcher": "^3.1.1",
     "karma-jasmine": "^5.0.0",
@@ -68,7 +68,7 @@
     "firebase": "^9.7.0",
     "isomorphic-fetch": "^3.0.0",
     "tslib": "^2.4.0",
-    "univ-fs": "^0.7.19"
+    "univ-fs": "^0.8.9"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"
