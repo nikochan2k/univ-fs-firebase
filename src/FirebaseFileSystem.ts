@@ -213,7 +213,6 @@ export class FirebaseFileSystem extends AbstractFileSystem {
     return false;
   }
 
-  /* eslint-disable */
   private _handleHead(obj: FullMetadata) {
     const metadata = obj.customMetadata || {};
     const stats: Stats = {};
@@ -236,6 +235,4 @@ export class FirebaseFileSystem extends AbstractFileSystem {
 
     return stats;
   }
-
-  /* eslint-enable */
 }

@@ -39,7 +39,7 @@ export class FirebaseFile extends AbstractFile {
         name: NotReadableError.name,
         repository: this.ffs.repository,
         path,
-        e: e as any, // eslint-disable-line
+        e,
       });
     }
     if (response.status === 404) {
