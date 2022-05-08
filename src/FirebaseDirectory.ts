@@ -7,6 +7,10 @@ export class FirebaseDirectory extends AbstractDirectory {
     super(ffs, path);
   }
 
+  public async _doDelete(): Promise<void> {
+    return Promise.resolve();
+  }
+
   public async _doList(): Promise<Item[]> {
     const ffs = this.ffs;
     const path = this.path;
@@ -31,10 +35,6 @@ export class FirebaseDirectory extends AbstractDirectory {
   }
 
   public async _doMkcol(): Promise<void> {
-    return Promise.resolve();
-  }
-
-  public async _doRmdir(): Promise<void> {
     return Promise.resolve();
   }
 }

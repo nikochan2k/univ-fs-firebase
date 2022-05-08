@@ -15,12 +15,10 @@ import {
   AbstractFileSystem,
   createError,
   FileSystemOptions,
-  HeadOptions,
   joinPaths,
   NoModificationAllowedError,
   NotFoundError,
   NotReadableError,
-  PatchOptions,
   Stats,
   TypeMismatchError,
   URLOptions,
@@ -54,16 +52,49 @@ export class FirebaseFileSystem extends AbstractFileSystem {
     return metadata;
   }
 
-  public async _doGetDirectory(path: string): Promise<AbstractDirectory> {
-    return Promise.resolve(new FirebaseDirectory(this, path));
+  public _doGetDirectory(path: string): AbstractDirectory {
+    return new FirebaseDirectory(this, path);
   }
 
-  public async _doGetFile(path: string): Promise<AbstractFile> {
-    return Promise.resolve(new FirebaseFile(this, path));
+  public _doGetFile(path: string): AbstractFile {
+    return new FirebaseFile(this, path);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public async _doHead(path: string, _options?: HeadOptions): Promise<Stats> {
+  public async _doGetURL(
+    path: string,
+    isDirectory: boolean,
+    options: URLOptions
+  ): Promise<string> {
+    if (isDirectory) {
+      throw createError({
+        name: TypeMismatchError.name,
+        repository: this.repository,
+        path,
+        e: { message: `"${path}" is not a directory` },
+      });
+    }
+
+    options = { method: "GET", ...options };
+    switch (options.method) {
+      case "GET":
+        break;
+      default:
+        throw this._error(
+          path,
+          { message: `"${options.method}" is not supported` }, // eslint-disable-line
+          false
+        );
+    }
+
+    const file = await this._getEntry(path, isDirectory);
+    try {
+      return getDownloadURL(file);
+    } catch (e) {
+      throw this._error(path, e, false);
+    }
+  }
+
+  public async _doHead(path: string): Promise<Stats> {
     try {
       const res = await this._getMetadata(path, false);
       return this._handleHead(res);
@@ -75,8 +106,7 @@ export class FirebaseFileSystem extends AbstractFileSystem {
   public async _doPatch(
     path: string,
     _stats: Stats,
-    props: Stats,
-    _options: PatchOptions // eslint-disable-line
+    props: Stats
   ): Promise<void> {
     try {
       const obj = await this._getMetadata(path, props["size"] === null);
@@ -85,40 +115,6 @@ export class FirebaseFileSystem extends AbstractFileSystem {
       await updateMetadata(entry, obj);
     } catch (e) {
       throw this._error(path, e, true);
-    }
-  }
-
-  public async _doToURL(
-    path: string,
-    isDirectory: boolean,
-    options?: URLOptions
-  ): Promise<string> {
-    if (isDirectory) {
-      throw createError({
-        name: TypeMismatchError.name,
-        repository: this.repository,
-        path,
-        e: { message: `"${path}" is not a directory` },
-      });
-    }
-
-    options = { urlType: "GET", ...options };
-    switch (options.urlType) {
-      case "GET":
-        break;
-      default:
-        throw this._error(
-          path,
-          { message: `"${options.urlType}" is not supported` }, // eslint-disable-line
-          false
-        );
-    }
-
-    const file = await this._getEntry(path, isDirectory);
-    try {
-      return getDownloadURL(file);
-    } catch (e) {
-      throw this._error(path, e, false);
     }
   }
 

@@ -6,7 +6,6 @@ import {
   createError,
   NotFoundError,
   NotReadableError,
-  ReadOptions,
   Stats,
   WriteOptions,
 } from "univ-fs";
@@ -17,11 +16,21 @@ export class FirebaseFile extends AbstractFile {
     super(ffs, path);
   }
 
-  // eslint-disable-next-line
-  public async _doRead(_stats: Stats, _options: ReadOptions): Promise<Data> {
+  public async _doDelete(): Promise<void> {
     const ffs = this.ffs;
     const path = this.path;
-    const url = await ffs._doToURL(path, false);
+    const file = await this.ffs._getEntry(path, false);
+    try {
+      await deleteObject(file);
+    } catch (e) {
+      throw ffs._error(path, e, true);
+    }
+  }
+
+  public async _doRead(): Promise<Data> {
+    const ffs = this.ffs;
+    const path = this.path;
+    const url = await ffs._doGetURL(path, false, { method: "GET" });
     let response: Response;
     try {
       response = await fetch(url);
@@ -51,17 +60,6 @@ export class FirebaseFile extends AbstractFile {
       });
     }
     return response.body;
-  }
-
-  public async _doRm(): Promise<void> {
-    const ffs = this.ffs;
-    const path = this.path;
-    const file = await this.ffs._getEntry(path, false);
-    try {
-      await deleteObject(file);
-    } catch (e) {
-      throw ffs._error(path, e, true);
-    }
   }
 
   public async _doWrite(
